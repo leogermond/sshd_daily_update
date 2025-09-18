@@ -1,0 +1,19 @@
+[Unit]
+Description=SSHD checkup
+After=network-online.target
+Requires=sshd.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/conf.d/sshd-report
+ExecStart=/usr/local/bin/sshd_report_sendmail "${EMAIL_FROM}" "${EMAIL_TO}"
+
+# hardening, comment out if encountering errors
+DynamicUser=true
+Group=mail
+ReadOnlyPath=/
+ProtectHome=true
+
+[Install]
+WantedBy=multi-user.target

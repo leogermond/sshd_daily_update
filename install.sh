@@ -33,46 +33,13 @@ echo -n "Checking for /var/log/fail2ban.log.1 "
 test -f /var/log/fail2ban.log.1 || { echo >&2 "[BAD] log does not exist"; exit 1; }
 echo "[OK]"
 
+echo -n "Install systemd reporting"
+install -Dm 0755 -T ./sshd_report.sh /usr/local/bin/sshd_report
+install -Dm 0755 -T ./sshd_report_sendmail.sh /usr/local/bin/sshd_report_sendmail
+install -Dm 0755 -T ./systemd/sshd-report.conf /etc/conf.d/sshd-report
+install -Dm 0644 -t /etc/systemd/system ./systemd/sshd-report@.{service,timer}
 
-## Install IPstack Script
-if ./ipstack.sh -a ; then
-	echo "ipstack install successful"
-else
-	echo "ipstack install failed"
-	exit 1
-fi
-
-
-## Copy to /usr/local/bin
-echo -n "Copying sshd_daily_update.sh to /usr/local/bin/ "
-sudo cp sshd_daily_update.sh /usr/local/bin/sshd_daily_update || { echo >&2 "[BAD] copying failed"; exit 1; }
-echo "[OK]"
-
-## Do Cron setup
-read -p "Do you want daily email reports as a cron entry? [Y/n]: " CRONYES
-
-if [ "$CRONYES" = "" ] || [ "$CRONYES" = "y" ] || [ "$CRONYES" = "Y" ]; then
-	read -p "Please input the email to send daily report to: " EMAIL
-
-	if [ "$EMAIL" = "" ]; then
-		echo >&2 "Empty Email, failure"
-		exit 1
-	else
-		sed -e 's/youremailhere@gmail.com/'"$EMAIL"'/g' cron_sshd_daily_update > cron_sshd_daily_update_tmp
-		sudo mv cron_sshd_daily_update_tmp /etc/cron.daily/zzz_cron_sshd_daily_update
-		echo "Script setup to run by move to /etc/cron.daily"
-
-		echo -n "Updating permissions for cron invocation script "
-		sudo chown root:root /etc/cron.daily/zzz_cron_sshd_daily_update|| { echo >&2 "[BAD] Failed to update owner to root"; exit 1; }
-		sudo chmod 755 /etc/cron.daily/zzz_cron_sshd_daily_update|| { echo >&2 "[BAD] Failed to update permissions to 755"; exit 1; }
-		echo "[OK]"
-	fi
-fi
-
-## Permissions Update
-echo -n "Updating permissions for script "
-sudo chown root:root /usr/local/bin/sshd_daily_update || { echo >&2 "[BAD] Failed to update script owner to root"; exit 1; }
-sudo chmod 755 /usr/local/bin/sshd_daily_update || { echo >&2 "[BAD] Failed to update permissions to 755"; exit 1; }
+systemctl enable --now sshd-report@daily.timer
 echo "[OK]"
 
 ## All Done

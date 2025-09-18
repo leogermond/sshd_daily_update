@@ -1,4 +1,5 @@
 # sshd_daily_update
+
 A simple script that provides a daily update for the system admin including:
 * checks for available updates
 * auth log analysis (looking at ssh only)
@@ -18,7 +19,7 @@ There were 2 successful login(s) from 1 account(s) and 1 IP address(es)
 The top username(s) were:
    2 realusername
 The top IP(s) were:
-   2 xxx.xxx.xxx.xxx  :  Los Angeles California, US        
+   2 xxx.xxx.xxx.xxx
 
 There were 63 failed login(s) from 1 account(s) and 55 IP address(es)
 The top username(s) were:
@@ -29,11 +30,11 @@ The top username(s) were:
    3 ftpuser
    2 zabbix
 The top IP(s) were:
-   3 68.183.150.54   : Clifton New Jersey, US : BANNED
-   3 128.199.182.235 : Singapore , SG : 
-   2 58.59.2.26      :  Shandong, CN : BANNED
-   2 51.68.230.54    :  , FR : 
-   2 46.101.127.49   : Frankfurt am Main Hesse, DE : BANNED
+   3 68.183.150.54   : BANNED
+   3 128.199.182.235 :
+   2 58.59.2.26      : BANNED
+   2 51.68.230.54    : 
+   2 46.101.127.49   : BANNED
 
 24 attempts on real account root
 4 attempts on real account www
@@ -59,7 +60,6 @@ Rootkit checks...
 * The script assumes your auth logs are at /var/log/ and you have auth.log, auth.log.1, fail2ban.log, and fail2ban.log.1
 * You must have fail2ban installed and running
 * You must have rkhunter installed and indexed
-* You must have an API key for ipstack.com
 * Simple method is to call the script from the cmdline for a report printed to stdout
 * Or use the included cron script (place in /etc/cron.daily/), configure the script, and configure sendmail for sending email
 * There are comments in the cron script explaining what needs to be configured
@@ -71,4 +71,3 @@ Rootkit checks...
 
 ## Thanks
 * SMTP Provided by Mailgun  [mailgun](https://www.mailgun.com/)
-* IP Lookup with [ipstack.com](https://www.ipstack.com/) (FREE! and more detailed results than GeoLite2)

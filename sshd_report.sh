@@ -1,29 +1,40 @@
 #!/bin/bash
+set -e
 
-cd /tmp
-
-RKHUNT='false'
+HELP='false'
 SENDMAILFLAG='false'
-EMAIL="$USER@$HOSTNAME"
+RKHUNT='false'
+
+usage() {
+	echo "Usage: sshd_report [-hmor] EMAIL_TO EMAIL_FROM"
+        echo "basic SSHD email log report"
+	echo "   -h  help"
+	echo "   -m  email formatting (include header/HTML junk)"
+	echo "   -r  run rkhunter"
+}
 
 ##ARGUMENT HANDLING
-while getopts 'hme:r' flag; do
+while getopts 'hmr' flag; do
   case "${flag}" in
-	h) HELP='true' ;;
+    h) HELP='true' ;;
     m) SENDMAILFLAG='true' ;;
-    e) EMAIL="${OPTARG}" ;;
     r) RKHUNT='true' ;;
   esac
+  shift
 done
 
+if [ $# -ne 2 ]; then
+	echo "wrong args: $*"
+	usage
+	exit 2
+fi
+
+EMAIL_FROM=$1
+EMAIL_TO=$2
 
 ##HELP
 if [ "$HELP" = "true" ]; then
-	echo "SSHD DAILY UPDATE - basic daily log report and admin"
-	echo "   run with no args for a report to stdout, add -r for rkhunter, add email options to pipe to sendmail"
-	echo "   -m : email formatting (include header/HTML junk)"
-	echo "   -e : TO email address for putting in email header (with -m option)"
-	echo "   -r : run rkhunter"
+	usage
 	exit 0
 fi
 
@@ -36,8 +47,8 @@ fi
 
 ##HTML HEADER JUNK
 if [ "$SENDMAILFLAG" = "true" ]; then
-	echo "From: logupdates@$HOSTNAME"
-	echo "To: $EMAIL"
+	echo "To: $EMAIL_TO"
+	echo "From: $EMAIL_FROM"
 	echo "Subject: Daily Log Analysis"
 	echo "MIME-Version: 1.0"
 	echo "Content-Type: text/html"
@@ -46,10 +57,6 @@ if [ "$SENDMAILFLAG" = "true" ]; then
 	echo "<body>"
 	echo "<pre style=\"font: monospace\">"
 fi
-
-##UPDATES STATUS
-echo -n "UPDATES:"
-sudo cat /var/lib/update-notifier/updates-available
 
 # Create a Logfile with the last day
 yesterday=$(date --date='1 days ago' +"%F")
@@ -61,12 +68,12 @@ echo "LOG ANALYSIS:"
 echo -n "Analyzing logs from "
 head -n 1 day.log | grep -a -P -o "^(\S+\s+\S+\s+\S+)" | tr -d '\n'	# Start
 echo -n " to "
-tail -n 1 day.log | grep -a -P -o "^(\S+\s+\S+\s+\S+)" 				# End
+tail -n 1 day.log | grep -a -P -o "^(\S+\s+\S+\s+\S+)" 			# End
 echo ""
 
 ##SUCCESS SECTION
 # Grab successful logins and put them in a file
-grep -a "Accepted" day.log > successful_auths.log
+grep -a "Accepted" day.log > successful_auths.log || true
 
 # How many successful logins there were
 successful_auths_count=$(wc -l < successful_auths.log | tr -d '\n')
@@ -93,11 +100,7 @@ if [ "$successful_auths_count" != "0" ]; then
 
 	while read line; do
 		line_ip=$(echo "$line" | cut -d " " -f 2)
-		ipstack_resp=$(ipstack -i "$line_ip")
-		city=$(grep -a -oP "city\":\"\K([^\"]+)" <<< "$ipstack_resp")
-		region=$(grep -a -oP "region_code\":\"\K([^\"]+)" <<< "$ipstack_resp")
-		country=$(grep -a -oP "country_code\":\"\K([^\"]+)" <<< "$ipstack_resp")
-		printf "   %-18s: %s %s, %s\n" "$line" "$city" "$region" "$country"
+		echo "$line_ip"
 	done < successful_ips.log
 
 	echo ""
@@ -108,7 +111,7 @@ fi
 
 ##FAIL2BAN PREP
 # Create a Logfile with the last day
-grep -a "`date --date='1 days ago' +"%F"`" /var/log/fail2ban.log* > fail2ban_day.log
+grep -a "`date --date='1 days ago' +"%F"`" /var/log/fail2ban.log* > fail2ban_day.log || true
 
 ##FAILURE SECTION
 # Grab failed logins and put them in a file
@@ -141,10 +144,6 @@ if [ "$failed_auths_count" != "0" ]; then
 
 	while read line; do
 	    line_ip=$(echo "$line" | grep -a -oP "\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b")
-		ipstack_resp=$(ipstack -i "$line_ip")
-		city=$(grep -a -oP "city\":\"\K([^\"]+)" <<< "$ipstack_resp")
-		region=$(grep -a -oP "region_code\":\"\K([^\"]+)" <<< "$ipstack_resp")
-		country=$(grep -a -oP "country_code\":\"\K([^\"]+)" <<< "$ipstack_resp")
 
 		if grep -a -q "$line_ip" fail2ban_day.log; then
 			banned="BANNED"
@@ -152,7 +151,7 @@ if [ "$failed_auths_count" != "0" ]; then
 			banned=""
 		fi
 
-		printf "   %-18s: %s %s, %s : %s\n" "$line" "$city" "$region" "$country" "$banned"
+		printf "   %-18s: %s\n" "$line" "$banned"
 	done < failed_ips.log
 
 	echo ""
