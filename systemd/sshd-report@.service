@@ -7,7 +7,7 @@ StartLimitIntervalSec=0
 [Service]
 Type=oneshot
 EnvironmentFile=/etc/conf.d/sshd-report
-ExecStart=/usr/local/bin/sshd_report_sendmail "${EMAIL_FROM}" "${EMAIL_TO}"
+ExecStart=/usr/local/bin/sshd_report_sendmail "${MAIL_FROM}" "${MAIL_TO}"
 
 # hardening, comment out if encountering errors
 DynamicUser=true
