@@ -8,6 +8,9 @@ StartLimitIntervalSec=0
 Type=oneshot
 EnvironmentFile=/etc/conf.d/sshd-report
 ExecStart=/usr/local/bin/sshd_report_sendmail "${MAIL_FROM}" "${MAIL_TO}"
+# if sending to localhost set user and group to have correct mailbox access
+#User=
+#Group=
 
 # hardening, comment out if encountering errors
 DynamicUser=true
